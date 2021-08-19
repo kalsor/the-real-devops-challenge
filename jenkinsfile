@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+    environment {
+        GITHUB_REPO = 'https://github.com/kalsor/the-real-devops-challenge'
+	BRANCHNAME = 'master'
+        FECHA = sh (script: 'date +%Y%m%d%H%M%S', returnStdout: true).trim()
+        REGISTRY = '<REGISTRY_IP>:5000'
+        CONTAINERNAME = 'devops-challenge'
+        EXTPORT = '8081'
+        INTPORT = '8080'
+        MONGOURI = 'mongodb://mongo_admin:passw0rd@<MONGOIP>:27017/restaurant'
+    }
+    stages {
+        stage('Install python'){
+            steps {
+                sh 'apt-get install -y python3.10 pip'
+                sh 'pip install tox'
+                sh 'pip install -f ${REQFILE}'
+            }
+        }
+        stage('Checkout source') {
+            steps {
+                script {
+		        withCredentials([string(credentialsId: 'GITHUB_CREDENTIALS', variable: 'CREDENTIALS')]) {
+        	                git url: env. GITHUB_REPO, branch: env.BRANCHNAME, credentialsId: $CREDENTIALS
+		        }
+		}
+            }
+        }
+        stage('Run tox') {
+            steps {
+                sh 'tox -e py'
+            }
+        }
+        stage('Create Docker image') {
+            steps {
+                sh 'docker build . -t ${REGISTRY}/${CONTAINERNAME}:${FECHA} --build-arg MONGOURI=${MONGOURI} -f Dockerfile_app'
+                sh 'docker push ${REGISTRY}/${CONTAINERNAME}:${FECHA}'
+            }
+        }
+        stage('Run app') {
+            steps {
+                sh 'docker run -p ${EXTPORT}:${INTPORT} -name ${CONTAINERNAME} ${REGISTRY}/${CONTAINERNAME}:${FECHA}'
+            }
+        }
+    }
+}

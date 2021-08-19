@@ -1,0 +1,18 @@
+version: '3.1'
+
+services:
+
+  mongo:
+    image: <REGISTRY_IP>:5000/mongo:<fecha>
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo_admin
+      MONGO_INITDB_ROOT_PASSWORD: passw0rd
+    volumes:
+      - ~/mongo/data:/data/db
+ 
+  python_app:
+    image: <REGISTRY_IP>:5000/devops-challenge:<fecha>
+    ports:
+      - 8081:8080
+

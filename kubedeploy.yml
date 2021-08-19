@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels: {app: python-app }
+  name: python-app
+  namespace: devops-challenge
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: python-app }
+  template:
+    metadata:
+      creationTimestamp: null
+      labels: { app: python-app}
+    spec:
+      containers:
+      - image: <REGISTRY_IP>/python_app:<fecha>
+        imagePullPolicy: IfNotPresent
+        name: python_app
+        resources:
+          requests: 
+            cpu: "100m"
+            memory: "64Mi"
+        livenessProbe:
+                httpGet:
+                        path: /api/v1/restaurant
+                        port: 8080
+                initialDelaySeconds: 15
+                periodSeconds: 60
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels: {app: mongo-devops }
+  name: mongo-devops
+  namespace: devops-challenge
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: mongo-devops }
+  template:
+    metadata:
+      creationTimestamp: null
+      labels: { app: mongo-devops}
+    spec:
+      containers:
+      - image: <REGISTRY_IP>/mongo:<fecha>
+        imagePullPolicy: IfNotPresent
+        name: mongo-devops
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+        livenessProbe:
+          exec:
+            command:
+            - mongo
+            - --eval
+            - db.adminCommand('ping')
+          failureThreshold: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        volumeMounts:
+              - name: mongodb-datavolume
+                mountPath: /data/db
+      volumes:
+      - name: mongodb-datavolume
+        persistentVolumeClaim:
+           claimName: pvc-mongodb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: mongo-devops
+  name: mongo-devops
+  namespace: devops-challenge
+spec:
+  ports:
+  - name: http
+    port: 27017
+    targetPort: 27017
+  selector:
+    app:  mongo-devops
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: python-app
+  name: python-app
+  namespace: devops-challenge
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  selector:
+    app: python-app
+  sessionAffinity: None
+  type: LoadBalancer
+

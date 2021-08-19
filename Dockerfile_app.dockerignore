@@ -1,0 +1,8 @@
+assets*
+test*
+.git*
+data*
+tox.ini*
+LICENSE*
+README*
+

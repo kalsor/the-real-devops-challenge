@@ -1,0 +1,10 @@
+FROM mongo
+
+
+COPY mongo_user.sh /docker-entrypoint-initdb.d/mongo_user.sh
+COPY data/restaurant.json restaurant.json
+CMD mongoimport -f restaurant.json
+
+EXPOSE 27017
+
+CMD ["mongod"]
